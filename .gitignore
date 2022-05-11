@@ -1,0 +1,7 @@
+.pio/
+.vscode/
+.devcontainer/
+build/
+main/config.h
+main/letsencryptroot.pem
+sdkconfig.old
