@@ -9,7 +9,7 @@
 #include "nvs_flash.h"
 #include "esp_event.h"
 #include "esp_netif.h"
-#include "protocol_examples_common.h"
+//#include "protocol_examples_common.h"
 
 #include "esp_log.h"
 #include "mqtt_client.h"
@@ -114,8 +114,7 @@ void pinOutput() {
 
 static void mqtt_app_start(void)
 {   
-    pinOutput(); 
-    //setCpuFrequencyMhz(80);     
+    pinOutput();     
 
     const esp_mqtt_client_config_t mqtt_cfg = {
         .uri = CONFIG_BROKER_URI,
@@ -135,7 +134,6 @@ static void mqtt_app_start(void)
 
 void app_main(void)
 {   
-    //ESP_ERROR_CHECK( esp_pm_configure(&pm_config) );
 
     ESP_LOGI(TAG, "[APP] Startup..");
     ESP_LOGI(TAG, "[APP] Free memory: %d bytes", esp_get_free_heap_size());
@@ -143,9 +141,12 @@ void app_main(void)
     
 
     wifi_softap();    
-    ESP_ERROR_CHECK(esp_event_loop_create_default());
+    //ESP_ERROR_CHECK(esp_event_loop_create_default());    
 
     mqtt_app_start();
+    while (1) {        
+        vTaskDelay(20000 / portTICK_PERIOD_MS);
+    }
 }
 
 

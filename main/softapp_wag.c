@@ -132,25 +132,10 @@ void wifi_softap(void)
     ESP_ERROR_CHECK(esp_wifi_init(&cfg));
 
     /* Configuration for the provisioning manager */
-    wifi_prov_mgr_config_t config = {
-        /* What is the Provisioning Scheme that we want ?
-         * wifi_prov_scheme_softap or wifi_prov_scheme_ble */
-
+    wifi_prov_mgr_config_t config = {        
 
         .scheme = wifi_prov_scheme_softap,
-
-
-        /* Any default scheme specific event handler that you would
-         * like to choose. Since our example application requires
-         * neither BT nor BLE, we can choose to release the associated
-         * memory once provisioning is complete, or not needed
-         * (in case when device is already provisioned). Choosing
-         * appropriate scheme specific event handler allows the manager
-         * to take care of this automatically. This can be set to
-         * WIFI_PROV_EVENT_HANDLER_NONE when using wifi_prov_scheme_softap*/
-
         .scheme_event_handler = WIFI_PROV_EVENT_HANDLER_NONE
-
     };
 
     /* Initialize provisioning manager with the
@@ -174,53 +159,16 @@ void wifi_softap(void)
          */
         char service_name[12];
         get_device_service_name(service_name, sizeof(service_name));
-
-        /* What is the security level that we want (0 or 1):
-         *      - WIFI_PROV_SECURITY_0 is simply plain text communication.
-         *      - WIFI_PROV_SECURITY_1 is secure communication which consists of secure handshake
-         *          using X25519 key exchange and proof of possession (pop) and AES-CTR
-         *          for encryption/decryption of messages.
-         */
+        
         wifi_prov_security_t security = WIFI_PROV_SECURITY_1;
-
-        /* Do we want a proof-of-possession (ignored if Security 0 is selected):
-         *      - this should be a string with length > 0
-         *      - NULL if not used
-         */
-        const char *pop = provisioningpw;
-
-        /* What is the service key (could be NULL)
-         * This translates to :
-         *     - Wi-Fi password when scheme is wifi_prov_scheme_softap
-         *          (Minimum expected length: 8, maximum 64 for WPA2-PSK)
-         *     - simply ignored when scheme is wifi_prov_scheme_ble
-         */
+        
+        const char *pop = provisioningpw;             
+         //     - Wi-Fi password when scheme is wifi_prov_scheme_softap         
         const char *service_key = NULL;
 
-
-        /* An optional endpoint that applications can create if they expect to
-         * get some additional custom data during provisioning workflow.
-         * The endpoint name can be anything of your choice.
-         * This call must be made before starting the provisioning.
-         */
-        wifi_prov_mgr_endpoint_create("custom-data");
-        /* Start provisioning service */
+        
         ESP_ERROR_CHECK(wifi_prov_mgr_start_provisioning(security, pop, service_name, service_key));
-
-        /* The handler for the optional endpoint created above.
-         * This call must be made after starting the provisioning, and only if the endpoint
-         * has already been created above.
-         */
-        wifi_prov_mgr_endpoint_register("custom-data", custom_prov_data_handler, NULL);
-
-        /* Uncomment the following to wait for the provisioning to finish and then release
-         * the resources of the manager. Since in this case de-initialization is triggered
-         * by the default event loop handler, we don't need to call the following */
-        // wifi_prov_mgr_wait();
-        // wifi_prov_mgr_deinit();
-        /* Print QR code for provisioning */
-
-        // wifi_prov_print_qr(service_name, pop, PROV_TRANSPORT_SOFTAP);
+        
 
     } else {
         ESP_LOGI(TAG, "Already provisioned, starting Wi-Fi STA");
