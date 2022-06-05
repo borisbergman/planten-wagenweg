@@ -25,18 +25,19 @@ static const char *TAG = "wagenweg";
 
 extern const uint8_t bcb_pem_start[] asm("_binary_letsencryptroot_pem_start");
 extern const uint8_t bcb_pem_end[] asm("_binary_letsencryptroot_pem_end");
-#define GPIO_OUTPUT_PIN_SEL ((1ULL << 12) | (1ULL << 27) | (1ULL << 26) | (1ULL << 25))
+#define GPIO_OUTPUT_PIN_SEL ((1ULL << 12) | (1ULL << 27) | (1ULL << 32) | (1ULL << 33))
 
-static uint solenoids[4] = {12, 27, 26, 25};
-static volatile int openingtime = 3000;
+static int solenoids[4] = {12, 27, 32, 33};
+static volatile int openingtime = 6000;
 
 static void close_solenoid(TimerHandle_t xTimer)
 {
-    uint ulCount;
-    ulCount = (uint)pvTimerGetTimerID(xTimer);
+    int ulCount;
+    ulCount = (int)pvTimerGetTimerID(xTimer);
     gpio_set_level(solenoids[ulCount], 0);
     xTimerStop(xTimer, 0);
     ESP_LOGI(TAG, "closed %d", ulCount);
+    xTimerDelete( xTimer, portMAX_DELAY );
 }
 
 static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data)
@@ -48,15 +49,20 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
     switch ((esp_mqtt_event_id_t)event_id)
     {
     case MQTT_EVENT_CONNECTED:
+        
         ESP_LOGI(TAG, "MQTT_EVENT_CONNECTED");
         msg_id = esp_mqtt_client_subscribe(client, "/wagenweg/planten", 1);
         ESP_LOGI(TAG, "sent subscribe successful, msg_id=%d", msg_id);
 
         msg_id = esp_mqtt_client_subscribe(client, "/wagenweg/planten/time", 1);
         ESP_LOGI(TAG, "sent subscribe successful, msg_id=%d", msg_id);
+
+        msg_id = esp_mqtt_client_subscribe(client, "/wagenweg/planten/off", 1);
+        ESP_LOGI(TAG, "sent subscribe successful, msg_id=%d", msg_id);
         
         msg_id = esp_mqtt_client_publish(client, "/wagenweg/planten/online", "1", 0, 0, 0);
         ESP_LOGI(TAG, "online mtqq send, msg_id=%d", msg_id);
+        
         break;
     case MQTT_EVENT_DISCONNECTED:
         ESP_LOGI(TAG, "MQTT_EVENT_DISCONNECTED");
@@ -76,17 +82,29 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         ESP_LOGI(TAG, "MQTT_EVENT_DATA");
         // printf("TOPIC=%.*s\r\n", event->topic_len, event->topic);
         // printf("DATA=%.*s\r\n", event->data_len, event->data);
-        if (strcmp("/wagenweg/planten", event->topic))
-        {        
-            uint solnum = atoi(event->data);                        
-            gpio_set_level(solenoids[solnum], 1);
-
-            TimerHandle_t timerq = xTimerCreate("closetimer", pdMS_TO_TICKS(3000), pdFALSE, (void *)solnum, close_solenoid);
-            //xTimerChangePeriod( timerq, openingtime / portTICK_PERIOD_MS, 100);
+        char buffer[] = {0,0,0,0,0,0,0,0};
+        //char topic[event->topic_len];
+        strncpy(buffer, event->data, event->data_len);
+        //strncpy(topic, event->topic, event->topic_len);
+        
+        int num = strtol(buffer, NULL, 10);
+        ESP_LOGI(TAG, "received data: %i", num);
+        if (strncmp("/wagenweg/planten", event->topic, event->topic_len) == 0)
+        {   
+            ESP_LOGI(TAG, "topic /wagenweg/planten");                        
+            gpio_set_level(solenoids[num], 1);
+            
+            TimerHandle_t timerq = xTimerCreate("closetimer", pdMS_TO_TICKS(3000), pdFALSE, (void *)num, close_solenoid);
+            xTimerChangePeriod( timerq, openingtime / portTICK_PERIOD_MS, 100);
             xTimerStart(timerq, 0);
-        }
-        if(strcmp("/wagenweg/planten/time", event->topic)) {
-            openingtime = atoi(event->data);            
+        } else if(strncmp("/wagenweg/planten/time", event->topic, event->topic_len) == 0) {                        
+            ESP_LOGI(TAG, "topic /wagenweg/planten/time %i", num);              
+            openingtime = num;
+        } else if(strncmp("/wagenweg/planten/off", event->topic, event->topic_len) == 0) {
+            ESP_LOGI(TAG, "topic /wagenweg/planten/off ");            
+            gpio_set_level(solenoids[num], 0);
+        } else {
+            ESP_LOGI(TAG, "UNKNOWN TOPIC %.*s",event->data_len, event->topic);
         }
         break;
     case MQTT_EVENT_ERROR:
