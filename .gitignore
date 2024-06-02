@@ -3,5 +3,6 @@
 .devcontainer/
 build/
 main/config.h
-main/letsencryptroot.pem
+main/isrgrootx1.pem
 sdkconfig.old
+debug.log

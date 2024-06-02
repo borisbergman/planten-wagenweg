@@ -1,0 +1,5 @@
+syntax = "proto3";
+
+message Alive {
+    int64 time = 1;
+}

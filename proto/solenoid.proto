@@ -1,0 +1,6 @@
+syntax = "proto3";
+
+message Solenoid {
+    int32 id = 1; 
+    int32 time = 2; 
+}

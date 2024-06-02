@@ -9,4 +9,4 @@ set(EXTRA_COMPONENT_DIRS $ENV{IDF_PATH}/examples/common_components/protocol_exam
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 project(planten-wagenweg)
 
-target_add_binary_data(planten-wagenweg.elf "main/letsencryptroot.pem" TEXT)
+target_add_binary_data(planten-wagenweg.elf "main/isrgrootx1.pem" TEXT)
